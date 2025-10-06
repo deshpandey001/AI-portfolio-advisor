@@ -13,5 +13,7 @@ export default defineConfig({
   preview: {
     host: '0.0.0.0',
     port: process.env.PORT ? parseInt(process.env.PORT) : 4173,
+    // Add this line to allow Render's host
+    allowedHosts: ['ai-portfolio-advisor-ls47.onrender.com'],
   },
 });
