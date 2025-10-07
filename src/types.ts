@@ -3,6 +3,14 @@ export interface UserProfile {
   income: number;
   savings: number;
   risk_score: number;
+  life_events?: string;
+}
+
+export interface LifeEvents {
+  marriage_years?: number | null;
+  retirement_years?: number | null;
+  house_years?: number | null;
+  kids_years?: number | null;
 }
 
 export interface Allocation {
@@ -25,4 +33,5 @@ export interface PredictionResult {
   compliance_explanation: string;
   insurance_recommendations: string[];
   growth_projections: GrowthProjection[];
+  extracted_life_events?: LifeEvents;
 }

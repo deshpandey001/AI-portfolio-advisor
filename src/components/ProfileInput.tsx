@@ -1,4 +1,4 @@
-import { DollarSign, Calendar, PiggyBank, TrendingUp } from 'lucide-react';
+import { DollarSign, Calendar, PiggyBank, TrendingUp, Heart } from 'lucide-react';
 import type { UserProfile } from '../types';
 
 interface ProfileInputProps {
@@ -8,7 +8,7 @@ interface ProfileInputProps {
 }
 
 export function ProfileInput({ profile, onChange, onAnalyze }: ProfileInputProps) {
-  const handleChange = (field: keyof UserProfile, value: number) => {
+  const handleChange = (field: keyof UserProfile, value: number | string) => {
     onChange({ ...profile, [field]: value });
   };
 
@@ -95,6 +95,23 @@ export function ProfileInput({ profile, onChange, onAnalyze }: ProfileInputProps
               <span>Aggressive</span>
             </div>
           </div>
+        </div>
+
+        <div>
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+            <Heart className="w-5 h-5 text-blue-600" />
+            Life Events & Goals
+          </label>
+          <textarea
+            value={profile.life_events || ''}
+            onChange={(e) => handleChange('life_events', e.target.value)}
+            placeholder="Tell us about your future plans... e.g., 'I'm planning to get married in 2 years, buy a house in 5 years, and retire in 25 years.'"
+            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none resize-none"
+            rows={4}
+          />
+          <p className="text-xs text-gray-500 mt-2">
+            Share upcoming milestones like marriage, retirement, home purchase, or having children
+          </p>
         </div>
       </div>
 

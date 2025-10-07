@@ -1,7 +1,10 @@
-import type { UserProfile, Allocation, PredictionResult, GrowthProjection } from '../types';
+import type { UserProfile, Allocation, PredictionResult, GrowthProjection, LifeEvents } from '../types';
 
 export function predictPortfolio(profile: UserProfile): PredictionResult {
-  const { age, income, savings, risk_score } = profile;
+  const { age, income, savings, risk_score, life_events } = profile;
+
+  // --- Step 0: Extract life events if provided ---
+  const extracted_life_events = life_events ? extractLifeEvents(life_events) : undefined;
 
   // --- Step 1: Initial portfolio prediction ---
   let stocks = risk_score * 5 + (65 - age) / 2;
@@ -43,7 +46,7 @@ export function predictPortfolio(profile: UserProfile): PredictionResult {
 
   // --- Step 3: Generate human-like explanation ---
   const topFeatures = determineTopFeatures(profile, adjusted_allocation);
-  const llm_explanation = generateExplanation(profile, adjusted_allocation, topFeatures);
+  const llm_explanation = generateExplanation(profile, adjusted_allocation, topFeatures, extracted_life_events);
 
   // --- Step 4: Insurance recommendations ---
   const insurance_recommendations = getInsuranceRecommendations(profile);
@@ -58,21 +61,62 @@ export function predictPortfolio(profile: UserProfile): PredictionResult {
     compliance_explanation,
     insurance_recommendations,
     growth_projections,
+    extracted_life_events,
   };
+}
+
+// ---------------------- Life Events Extraction ----------------------
+function extractLifeEvents(text: string): LifeEvents {
+  const events: LifeEvents = {
+    marriage_years: null,
+    retirement_years: null,
+    house_years: null,
+    kids_years: null,
+  };
+
+  const lowerText = text.toLowerCase();
+
+  const marriageMatch = lowerText.match(/marr(?:y|ied|iage).*?(\d+)\s*year/i) ||
+                       lowerText.match(/(\d+)\s*year.*?marr(?:y|ied|iage)/i);
+  if (marriageMatch) {
+    events.marriage_years = parseInt(marriageMatch[1]);
+  }
+
+  const retirementMatch = lowerText.match(/retir(?:e|ement|ing).*?(\d+)\s*year/i) ||
+                          lowerText.match(/(\d+)\s*year.*?retir(?:e|ement|ing)/i);
+  if (retirementMatch) {
+    events.retirement_years = parseInt(retirementMatch[1]);
+  }
+
+  const houseMatch = lowerText.match(/(?:buy|purchase|buying).*?house.*?(\d+)\s*year/i) ||
+                     lowerText.match(/house.*?(\d+)\s*year/i) ||
+                     lowerText.match(/(\d+)\s*year.*?house/i);
+  if (houseMatch) {
+    events.house_years = parseInt(houseMatch[1]);
+  }
+
+  const kidsMatch = lowerText.match(/(?:kid|child|children|baby).*?(\d+)\s*year/i) ||
+                    lowerText.match(/(\d+)\s*year.*?(?:kid|child|children|baby)/i);
+  if (kidsMatch) {
+    events.kids_years = parseInt(kidsMatch[1]);
+  }
+
+  return events;
 }
 
 // ---------------------- Explanation ----------------------
 function generateExplanation(
   profile: UserProfile,
   allocation: Allocation,
-  topFeatures: string[]
+  topFeatures: string[],
+  lifeEvents?: LifeEvents
 ): string {
   const { age, income, savings, risk_score } = profile;
 
   let explanation = `An investor with the following profile:\n`;
   explanation += `- Age: ${age}\n`;
-  explanation += `- Income: $${income}\n`;
-  explanation += `- Savings: $${savings}\n`;
+  explanation += `- Income: $${income.toLocaleString()}\n`;
+  explanation += `- Savings: $${savings.toLocaleString()}\n`;
   explanation += `- Risk Score: ${risk_score.toFixed(1)}\n\n`;
 
   explanation += `is recommended to allocate their portfolio as follows:\n`;
@@ -110,7 +154,31 @@ function generateExplanation(
   }
 
   if (savings > 0) {
-    explanation += `Additionally, your savings of $${savings} serve as a financial cushion, enhancing portfolio stability.`;
+    explanation += `Additionally, your savings of $${savings.toLocaleString()} serve as a financial cushion, enhancing portfolio stability.\n\n`;
+  }
+
+  if (lifeEvents) {
+    const hasEvents = Object.values(lifeEvents).some(v => v !== null);
+    if (hasEvents) {
+      explanation += `\n📅 Life Events Considerations:\n`;
+
+      if (lifeEvents.marriage_years) {
+        explanation += `- Marriage in ${lifeEvents.marriage_years} year(s): Consider building an emergency fund and coordinating financial plans with your partner.\n`;
+      }
+      if (lifeEvents.house_years) {
+        explanation += `- House purchase in ${lifeEvents.house_years} year(s): Maintain sufficient liquidity in cash/bonds for down payment and closing costs.\n`;
+      }
+      if (lifeEvents.kids_years) {
+        explanation += `- Children in ${lifeEvents.kids_years} year(s): Start planning for education expenses and increase life insurance coverage.\n`;
+      }
+      if (lifeEvents.retirement_years) {
+        explanation += `- Retirement in ${lifeEvents.retirement_years} year(s): ${
+          lifeEvents.retirement_years < 10
+            ? 'Focus on capital preservation and gradually shift to more conservative allocations.'
+            : 'You have time to focus on growth while planning for future income needs.'
+        }\n`;
+      }
+    }
   }
 
   return explanation;
